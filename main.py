@@ -1,6 +1,8 @@
 from xlrd import open_workbook
 from pyeda.inter import *
 
+from Tree import *
+
 wb = open_workbook(filename='1.xls', formatting_info=True)
 matrixSheet = wb.sheet_by_name('Interlock Matrix')
 stringsSheet = wb.sheet_by_name('Interlock Strings')
@@ -8,50 +10,9 @@ interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
 
-
-def is_flat(name):
-	if not isinstance(name, str):
-		for item in name:
-			if item.find('ILK_') or item.find('NOT_ILK_'):
-				return False
-	else:
-		if name.find('ILK_') or name.find('NOT_ILK_'):
-			return False
-	return True
-
-def flatten_helper(name, addStr):
-	temp = []
-	index = 0
-	temp.append(addStr)
-	# find interlock on worksheet
-	for num in interlockNumArray:
-		if name == stringsSheet.cell(num, 11).value:
-			index = interlockNumArray.index(num)
-	start = ioMemNumArray[index] + 1
-	stop = whereUsedNumArray[index] - 1
-	c1 = stringsSheet.col_values(11, start, stop)
-	c2 = stringsSheet.col_values(26, start, stop)
-	for item in c1:
-		temp.append(item)
-		print(item)
-	for item in c1:
-		temp.append(item)
-	return temp
-
-def flatten_expr(array, name):
-	newName, intermediateName = '', ''
-	addStr = ''
-	if name.find('ILK_') != -1:
-		newName = flatten_helper(name[8:], addStr)
-	elif name.find('NOT_ILK_') != -1:
-		# remove NOT_ from name
-		temp = name.partition('NOT_')
-		itermediateName = temp[0] + temp[2]
-		addStr = '~'
-		newName = flatten_helper(intermediateName[8:], addStr)
-	elif name.find('NOT_DO') != -1:
-		newName = '~' + name[4:]
-	return newName
+def insert(pointer, array, tree):
+	for doi in array:
+		pointer = tree.insert_child(pointer, doi)
 
 def match_helper(col, soName):
 	for item in col:
@@ -67,6 +28,31 @@ def match(col1, col2, soName):
 	if found1 or found2:
 		return True
 	return False
+
+def helper(name):
+	for num in interlockNumArray:
+		if name == stringsSheet.cell(num, 11).value:
+			return int(interlockNumArray.index(num))
+	return None
+
+def get_io_members(name):
+	temp = []
+	# find interlock on worksheet
+	index = helper(name)
+	#print(index)
+	if not index:
+		print('ERROR: BUG!!')
+		exit()
+	# list I/O members of the interlock
+	start = ioMemNumArray[index] + 1
+	stop = whereUsedNumArray[index] - 1
+	c1 = stringsSheet.col_values(11, start, stop)
+	c2 = stringsSheet.col_values(26, start, stop)
+	for item in c1:
+		temp.append(item)
+	for item in c2:
+		temp.append(item)
+	return temp
 
 def main():
 	#wb = open_workbook(filename='1.xls', formatting_info=True)
@@ -142,16 +128,44 @@ def main():
 				continue
 			dependencyMap[soName].append(doName)
 
-	
-	# print(dependencyMap['SO_102'])
 
-	for k, v in dependencyMap.items():
-		for index, item in enumerate(v):
-			newItem = flatten_expr(v, item)
-			v[index] = newItem
+	#print(dependencyMap['SO_102'])
 
-	print(dependencyMap['SO_000'])
+	'''
+	for soName in soArray:
+		array = dependencyMap[soName]
+		ilkName = array[0]
+		array = array[1:]
+		newArray = loop(array, [])
+		dependencyMap[soName] = newArray
+	'''
 
+	array = dependencyMap['SO_030']
+	ilkName = array[0]
+	array = array[1:]
+
+	arrayCopy = array
+
+	tree = Tree()
+
+	for index, doi in enumerate(array):
+		if index == 0:
+			pointer = tree.insert_root(doi)
+		else:
+			pointer = tree.insert_child(pointer, doi)
+
+	check = tree.has_ilk()
+	while check:
+		print(1)
+		pointer, ilk = tree.get_ilk()
+		if ilk.find('NOT_') != -1:
+			ilk = ilk[4:]
+		array = get_io_members(ilk)
+		insert(pointer, array, tree)
+		check = tree.has_ilk()
+
+	print(dependencyMap['SO_030'])
+	tree.pre()
 
 if __name__ == '__main__':
 	main()
