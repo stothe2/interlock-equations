@@ -10,9 +10,21 @@ interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
 
-def insert(pointer, array, tree):
-	for doi in array:
-		pointer = tree.insert_child(pointer, doi)
+def loop(p, check, tree, checkArray, ilk):
+	if not checkArray:
+		p, ilk = tree.get_ilk()
+	if ilk.find('NOT_') != -1:
+		ilk = ilk[4:]
+	array = get_io_members(ilk)
+	insert(p, array, tree, check)
+	check = tree.has_ilk()
+
+def insert(pointer, array, tree, check):
+	for item in array:
+		pointer = tree.insert_child(pointer, item)
+		if item.find('ILK') != -1:
+			ilk = item[8:]
+			loop(pointer, check, tree, True, ilk)
 
 def match_helper(col, soName):
 	for item in col:
@@ -39,18 +51,20 @@ def get_io_members(name):
 	temp = []
 	# find interlock on worksheet
 	index = helper(name)
-	#print(index)
 	if not index:
-		print('ERROR: BUG!!')
-		exit()
+		raise Exception('InterlockDoesNotExistException')
 	# list I/O members of the interlock
 	start = ioMemNumArray[index] + 1
 	stop = whereUsedNumArray[index] - 1
 	c1 = stringsSheet.col_values(11, start, stop)
 	c2 = stringsSheet.col_values(26, start, stop)
 	for item in c1:
+		if item == '':
+			continue
 		temp.append(item)
 	for item in c2:
+		if item == '':
+			continue
 		temp.append(item)
 	return temp
 
@@ -71,7 +85,6 @@ def main():
 	for i, so in enumerate(soArray):
 		dependencyList = []
 		# matirx begins at row 3, col 14
-		colourData = matrixSheet.row(i+3)
 		for j, doi in enumerate(doiArray):
 			xfx = matrixSheet.cell_xf_index(i+3, j+14)
 			xf = wb.xf_list[xfx]
@@ -96,13 +109,11 @@ def main():
 		elif item == "I/O Members:":
 			ioMemNumArray.append(index)
 
-
 	dependencyMap = dict()
 
 	for soName in soArray:
 		dependencyMap[soName] = []
 		for index, item in enumerate(whereUsedNumArray):
-			check = False
 			if index == (len(whereUsedNumArray) - 1):
 				searchCol1 = stringsSheet.col_values(11, item+1)
 				searchCol2 = stringsSheet.col_values(26, item+1)
@@ -115,8 +126,8 @@ def main():
 				continue
 			break
 		dependencyMap[soName].append(stringsSheet.cell(interlockNumArray[index], 11).value)
-		start = ioMemNumArray[index]+1
-		stop = whereUsedNumArray[index]-1
+		start = ioMemNumArray[index] + 1
+		stop = whereUsedNumArray[index] - 1
 		c1 = stringsSheet.col_values(11, start, stop)
 		c2 = stringsSheet.col_values(26, start, stop)
 		for doName in c1:
@@ -127,9 +138,6 @@ def main():
 			if doName == '':
 				continue
 			dependencyMap[soName].append(doName)
-
-
-	#print(dependencyMap['SO_102'])
 
 	'''
 	for soName in soArray:
@@ -156,13 +164,7 @@ def main():
 
 	check = tree.has_ilk()
 	while check:
-		print(1)
-		pointer, ilk = tree.get_ilk()
-		if ilk.find('NOT_') != -1:
-			ilk = ilk[4:]
-		array = get_io_members(ilk)
-		insert(pointer, array, tree)
-		check = tree.has_ilk()
+		check = loop(None, check, tree, None, '')
 
 	print(dependencyMap['SO_030'])
 	tree.pre()
