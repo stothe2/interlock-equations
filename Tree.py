@@ -76,7 +76,6 @@ class Tree:
 	def get_ilk(self):
 		array = self._to_list(self._root, [])
 		for item in array:
-			print(item.data)
 			if item.data.find('ILK_') != -1 and not item.colour:
 				item.colour = True
 				return item, item.data[8:]
@@ -90,6 +89,13 @@ class Tree:
 					n = child
 					self._to_list(n, array)
 		return array
+
+	def to_string(self):
+		array = self._to_list(self._root, [])
+		string = ''
+		for item in array:
+			string = string + ' ' + item.data
+		return string
 
 '''
 	def __iter__(self):
