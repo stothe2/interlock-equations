@@ -3,11 +3,11 @@ class Tree:
 	class _Node:
 		def __init__(self, data):
 			self.data = data
+			self.parent = None
+			self.children = list()
 			# black, True: visited
 			# red, False: not visited
 			self.colour = False
-			self.parent = None
-			self.children = list()
 
 	def __init__(self):
 		self._root = None
@@ -40,9 +40,6 @@ class Tree:
 		if not self._root:
 			raise Exception('EmptyTreeException')
 		return self._root
-
-	def get(self):
-		return self.data
 
 	def _convert(self, p):
 		# check for isinstance
@@ -78,10 +75,11 @@ class Tree:
 
 	def get_ilk(self):
 		array = self._to_list(self._root, [])
-		for n in array:
-			if n.data.find('ILK_') != -1 and not n.colour:
-				n.colour = True
-				return n, n.data[8:]
+		for item in array:
+			print(item.data)
+			if item.data.find('ILK_') != -1 and not item.colour:
+				item.colour = True
+				return item, item.data[8:]
 		raise Exception('NoILKPresentException')
 
 	def _to_list(self, n, array):
@@ -92,8 +90,6 @@ class Tree:
 					n = child
 					self._to_list(n, array)
 		return array
-
-
 
 '''
 	def __iter__(self):
