@@ -152,8 +152,6 @@ def main():
 	ilkName = array[0]
 	array = array[1:]
 
-	arrayCopy = array
-
 	tree = Tree()
 
 	for index, doi in enumerate(array):
@@ -168,6 +166,10 @@ def main():
 
 	print(dependencyMap['SO_030'])
 	tree.pre()
+
+	finalList = ilkName + tree.to_string()
+
+	print(finalList)
 
 if __name__ == '__main__':
 	main()
