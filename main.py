@@ -10,28 +10,21 @@ interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
 
-def loop(p, check, tree, checkArray, ilk):
-	if not checkArray:
-		p, ilk = tree.get_ilk()
-	if ilk.find('NOT_') != -1:
-		ilk = ilk[4:]
-	array = get_io_members(ilk)
-	insert(p, array, tree, check)
-	check = tree.has_ilk()
+def loop(tree, pointer, ilk):
+		array = get_io_members(ilk)
+		insert(array, tree, pointer)
 
-def insert(pointer, array, tree, check):
-	for item in array:
+def insert(array, tree, pointer):
+	for index, item in enumerate(array):
+		if index == len(array) - 1:
+			tree.set_extra_close(pointer)
 		pointer = tree.insert_child(pointer, item)
-		if item.find('ILK') != -1:
-			ilk = item[8:]
-			loop(pointer, check, tree, True, ilk)
 
 def match_helper(col, soName):
 	for item in col:
 		if item.find(soName) != -1:
 			return True
 	return False
-
 ##
 # found soName in given search columms?
 def match(col1, col2, soName):
@@ -149,27 +142,36 @@ def main():
 	'''
 
 	array = dependencyMap['SO_030']
-	ilkName = array[0]
+	ilk = array[0]
 	array = array[1:]
 
 	tree = Tree()
+	p = tree.insert_root(ilk)
+	
+	while tree.has_ilk():
+		pointer, ilk = tree.get_ilk()
+		loop(tree, pointer, ilk)
 
-	for index, doi in enumerate(array):
-		if index == 0:
-			pointer = tree.insert_root(doi)
-		else:
-			pointer = tree.insert_child(pointer, doi)
+	tree.reverse_children()
 
-	check = tree.has_ilk()
-	while check:
-		check = loop(None, check, tree, None, '')
+	arrayCopy = tree.format_list()
+	string = ''
+	for index, item in enumerate(arrayCopy):
+		string = string + ' ' + item
+		if index <= len(arrayCopy) - 2:
+			if item.find('D') != -1:
+				if arrayCopy[index+1].find('D') != -1 or arrayCopy[index+1].find('(') != -1:
+					string = string + ' &'
+			elif item.find(')') != -1:
+				if arrayCopy[index+1].find('(') != -1 or arrayCopy[index+1].find('D') != -1:
+					string = string + ' &'
+	print(string)
 
-	print(dependencyMap['SO_030'])
-	tree.pre()
-
-	finalList = ilkName + tree.to_string()
-
-	print(finalList)
+	f = expr(string)
+	print(f)
+	f = f.simplify()
+	f = f.factor()
+	print(f)
 
 if __name__ == '__main__':
 	main()
