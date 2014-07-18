@@ -8,6 +8,8 @@ class Tree:
 			# black, True: visited
 			# red, False: not visited
 			self.colour = False
+			# extra data (for formatting)
+			self.extra = False
 
 	def __init__(self):
 		self._root = None
@@ -33,6 +35,7 @@ class Tree:
 		n = self._Node(data)
 		n.parent = p
 		p.children.append(n)
+		
 		self._elements = self._elements + 1
 		return n
 
@@ -78,8 +81,17 @@ class Tree:
 		for item in array:
 			if item.data.find('ILK_') != -1 and not item.colour:
 				item.colour = True
-				return item, item.data[8:]
+				if len(item.data) <= 7:
+					ilk = item.data
+				elif item.data.find('NOT_ILK_') != -1:
+					ilk = item.data[12:]
+				else:
+					ilk = item.data[8:]
+				return item, ilk
 		raise Exception('NoILKPresentException')
+
+	def to_list(self):
+		return self._to_list(self._root, [])
 
 	def _to_list(self, n, array):
 		if n:
@@ -90,12 +102,47 @@ class Tree:
 					self._to_list(n, array)
 		return array
 
-	def to_string(self):
-		array = self._to_list(self._root, [])
-		string = ''
-		for item in array:
-			string = string + ' ' + item.data
-		return string
+	def format_list(self):
+		array = self._format_list(self._root, [])
+		arrayCopy = list()
+		for index, item in enumerate(array):
+			if item.find('ILK_') != -1:
+				continue
+			if item.find('NOT_DO_') != -1:
+				item = item[:11]
+			else:
+				item = item[:6]
+			arrayCopy.append(item)
+		return arrayCopy
+
+	def _format_list(self, n, array):
+		if n:
+			array.append(n.data)
+			if self.has_children(n):
+				if n.data.find('NOT_ILK_') != -1:
+					array.append('~(')
+				elif n.data.find('ILK_') != -1:
+					array.append('(')
+				for child in n.children:
+					n = child
+					self._format_list(n, array)
+					if n.extra:
+						array.append(')')
+		return array
+
+	def set_extra_close(self, n):
+		n.extra = True
+
+	def reverse_children(self):
+		self._reverse_children(self._root)
+
+	def _reverse_children(self, n):
+		if n:
+			if self.has_children(n):
+				n.children.reverse()
+				for child in n.children:
+					n = child
+					self._reverse_children(n)
 
 '''
 	def __iter__(self):
