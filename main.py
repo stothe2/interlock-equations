@@ -1,4 +1,5 @@
 from xlrd import open_workbook
+from xlsxwriter import Workbook
 from pyeda.inter import *
 
 from Tree import *
@@ -9,6 +10,17 @@ stringsSheet = wb.sheet_by_name('Interlock Strings')
 interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
+
+def write_data(sheet, soArray, dependencyMap):
+	rownum = 1
+	for item in soArray:
+		data = dependencyMap[item]
+		ilk = data[0]
+		equation = data[1]
+		sheet.write(rownum, 0, item)
+		sheet.write(rownum, 1, ilk)
+		sheet.write(rownum, 2, equation)
+		rownum = rownum + 1
 
 def loop(tree, pointer, ilk):
 		array = get_io_members(ilk)
@@ -132,46 +144,53 @@ def main():
 				continue
 			dependencyMap[soName].append(doName)
 
-	'''
+	
 	for soName in soArray:
 		array = dependencyMap[soName]
-		ilkName = array[0]
+		ilk = array[0]
+		mainIlk = ilk
 		array = array[1:]
-		newArray = loop(array, [])
-		dependencyMap[soName] = newArray
-	'''
 
-	array = dependencyMap['SO_030']
-	ilk = array[0]
-	array = array[1:]
+		tree = Tree()
+		p = tree.insert_root(ilk)
+		
+		while tree.has_ilk():
+			pointer, ilk = tree.get_ilk()
+			loop(tree, pointer, ilk)
 
-	tree = Tree()
-	p = tree.insert_root(ilk)
+		tree.reverse_children()
+
+		arrayCopy = tree.format_list()
+		string = ''
+		for index, item in enumerate(arrayCopy):
+			string = string + ' ' + item
+			if index <= len(arrayCopy) - 2:
+				if item.find('D') != -1:
+					if arrayCopy[index+1].find('D') != -1 or arrayCopy[index+1].find('(') != -1:
+						string = string + ' &'
+				elif item.find(')') != -1:
+					if arrayCopy[index+1].find('(') != -1 or arrayCopy[index+1].find('D') != -1:
+						string = string + ' &'
+
+		f = expr(string)
+		f = f.simplify()
+		f = f.factor()
+
+		dependencyMap[soName] = [mainIlk, str(f)]
+
+	# write data to excel file
+	book = Workbook('ILKEqns.xlsx')
+	sheet = book.add_worksheet('Flattened Interlock Equations')
+
+	sheet.write(0, 0, 'SO')
+	sheet.write(0, 1, 'ILK')
+	sheet.write(0, 2, 'Dependency')
+	# set width
+	sheet.set_column(2, 2, 300)
 	
-	while tree.has_ilk():
-		pointer, ilk = tree.get_ilk()
-		loop(tree, pointer, ilk)
+	write_data(sheet, soArray, dependencyMap)
 
-	tree.reverse_children()
-
-	arrayCopy = tree.format_list()
-	string = ''
-	for index, item in enumerate(arrayCopy):
-		string = string + ' ' + item
-		if index <= len(arrayCopy) - 2:
-			if item.find('D') != -1:
-				if arrayCopy[index+1].find('D') != -1 or arrayCopy[index+1].find('(') != -1:
-					string = string + ' &'
-			elif item.find(')') != -1:
-				if arrayCopy[index+1].find('(') != -1 or arrayCopy[index+1].find('D') != -1:
-					string = string + ' &'
-	print(string)
-
-	f = expr(string)
-	print(f)
-	f = f.simplify()
-	f = f.factor()
-	print(f)
+	book.close()
 
 if __name__ == '__main__':
 	main()
