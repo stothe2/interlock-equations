@@ -4,7 +4,7 @@ from pyeda.inter import *
 
 from Tree import *
 
-wb = open_workbook(filename='1.xls', formatting_info=True)
+wb = open_workbook(filename='2.xls', formatting_info=True)
 matrixSheet = wb.sheet_by_name('Interlock Matrix')
 stringsSheet = wb.sheet_by_name('Interlock Strings')
 interlockNumArray = []
@@ -56,7 +56,7 @@ def get_io_members(name):
 	temp = []
 	# find interlock on worksheet
 	index = helper(name)
-	if not index:
+	if index == None:
 		raise Exception('InterlockDoesNotExistException')
 	# list I/O members of the interlock
 	start = ioMemNumArray[index] + 1
@@ -73,39 +73,31 @@ def get_io_members(name):
 		temp.append(item)
 	return temp
 
+def generate_soArray():
+	soArray = list()
+	searchCol1 = stringsSheet.col_values(11)
+	searchCol2 = stringsSheet.col_values(26) 
+	for s in searchCol1:
+		if s.find('SO_') != -1:
+			soArray.append(s[:6])
+	for s in searchCol2:
+		if s.find('SO_') != -1:
+			soArray.append(s[:6])
+	soArray.sort()
+	return soArray
+
 def main():
 	#wb = open_workbook(filename='1.xls', formatting_info=True)
 	#matrixSheet = wb.sheet_by_name('Interlock Matrix')
-	soArray = matrixSheet.col_values(1, 3, 179)
+	soArray = generate_soArray()
 	doiArray = matrixSheet.row_values(2, 14, 146)
 
 	# number of rows and columns in matrix
 	nrows = len(soArray) # 176
 	ncols = len(doiArray) # 132
 
-	colourMap = dict()
-
-	# dark blue rgb(0, 51, 102)
-	# light blue rbd(204, 255, 255)
-	for i, so in enumerate(soArray):
-		dependencyList = []
-		# matirx begins at row 3, col 14
-		for j, doi in enumerate(doiArray):
-			xfx = matrixSheet.cell_xf_index(i+3, j+14)
-			xf = wb.xf_list[xfx]
-			bgx = xf.background.pattern_colour_index
-			rgb = wb.colour_map[bgx]
-			if rgb == (0, 51, 102):
-				dependencyList.append(doi)
-
-		colourMap[so] = dependencyList
-
-	# list of rownums for interlock number and where used
-	#stringsSheet = wb.sheet_by_name('Interlock Strings')
 	filterArray = stringsSheet.col_values(0)
-	#interlockNumArray = []
-	#whereUsedNumArray = []
-	#ioMemNumArray = []
+
 	for index, item in enumerate(filterArray):
 		if item == "Interlock Number:":
 			interlockNumArray.append(index)
@@ -150,6 +142,10 @@ def main():
 		ilk = array[0]
 		mainIlk = ilk
 		array = array[1:]
+
+		if mainIlk == 'ILK_01':
+			dependencyMap[soName] = [mainIlk, 'DI_000']
+			continue
 
 		tree = Tree()
 		p = tree.insert_root(ilk)
