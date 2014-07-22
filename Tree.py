@@ -106,12 +106,15 @@ class Tree:
 		array = self._format_list(self._root, [])
 		arrayCopy = list()
 		for index, item in enumerate(array):
-			if item.find('ILK_') != -1:
+			if item.find('ILK_') != -1 or item.find('DI_000') != -1:
 				continue
 			if item.find('NOT_DO_') != -1:
-				item = item[:11]
+				temp = item.split(':')
+				item = temp[0]
+				item = '~' + item[4:]
 			else:
-				item = item[:6]
+				temp = item.split(':')
+				item = temp[0]
 			arrayCopy.append(item)
 		return arrayCopy
 
