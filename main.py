@@ -7,9 +7,20 @@ from Tree import *
 wb = open_workbook(filename='2.xls', formatting_info=True)
 matrixSheet = wb.sheet_by_name('Interlock Matrix')
 stringsSheet = wb.sheet_by_name('Interlock Strings')
+rimSheet = wb.sheet_by_name('IO Mapping Table')
 interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
+
+def get_rim_number(name):
+	signalColumn = rimSheet.col_values(0)
+	rimColumn = rimSheet.col_values(32)
+
+	for index, item in enumerate(signalColumn):
+		if name.find(item) != -1:
+			if rimColumn[index].find('RIM') != -1:
+				temp = rimColumn[index].split()
+				return str(temp[1])
 
 def write_data(sheet, soArray, dependencyMap):
 	rownum = 1
@@ -96,6 +107,30 @@ def main():
 	nrows = len(soArray) # 176
 	ncols = len(doiArray) # 132
 
+	colourMap = dict()
+
+	'''
+	# dark blue rgb(0, 51, 102)
+	# light blue rbd(204, 255, 255)
+	for i, so in enumerate(soArray):
+		dependencyList = []
+		# matirx begins at row 3, col 14
+		for j, doi in enumerate(doiArray):
+			xfx = matrixSheet.cell_xf_index(i+3, j+14)
+			xf = wb.xf_list[xfx]
+			bgx = xf.background.pattern_colour_index
+			rgb = wb.colour_map[bgx]
+			if rgb == (0, 51, 102):
+				dependencyList.append(doi)
+
+		colourMap[so] = dependencyList
+
+	# list of rownums for interlock number and where used
+	#stringsSheet = wb.sheet_by_name('Interlock Strings')
+	#interlockNumArray = []
+	#whereUsedNumArray = []
+	#ioMemNumArray = []
+	'''
 	filterArray = stringsSheet.col_values(0)
 
 	for index, item in enumerate(filterArray):
@@ -157,6 +192,16 @@ def main():
 		tree.reverse_children()
 
 		arrayCopy = tree.format_list()
+
+		##
+		# Add the rim number generation function here
+		for index, item in enumerate(arrayCopy):
+			rimNumber = get_rim_number(item)
+			if not rimNumber:
+				continue
+			t = 'R' + rimNumber + '_' + item
+			arrayCopy[index] = t
+
 		string = ''
 		for index, item in enumerate(arrayCopy):
 			string = string + ' ' + item
@@ -173,6 +218,7 @@ def main():
 		f = f.factor()
 
 		dependencyMap[soName] = [mainIlk, str(f)]
+
 
 	# write data to excel file
 	book = Workbook('ILKEqns.xlsx')
