@@ -14,9 +14,16 @@ ioMemNumArray = []
 
 def get_rim_number(name):
 	signalColumn = rimSheet.col_values(0)
+	doColumn = rimSheet.col_values(16)
 	rimColumn = rimSheet.col_values(32)
 
 	for index, item in enumerate(signalColumn):
+		if name.find(item) != -1:
+			if rimColumn[index].find('RIM') != -1:
+				temp = rimColumn[index].split()
+				return str(temp[1])
+
+	for index, item in enumerate(doColumn):
 		if name.find(item) != -1:
 			if rimColumn[index].find('RIM') != -1:
 				temp = rimColumn[index].split()
@@ -28,7 +35,9 @@ def write_data(sheet, soArray, dependencyMap):
 		data = dependencyMap[item]
 		ilk = data[0]
 		equation = data[1]
-		sheet.write(rownum, 0, item)
+		rimNumber = get_rim_number(item)
+		newItem = 'R' + rimNumber + '_' + item
+		sheet.write(rownum, 0, newItem)
 		sheet.write(rownum, 1, ilk)
 		sheet.write(rownum, 2, equation)
 		rownum = rownum + 1
@@ -171,7 +180,6 @@ def main():
 				continue
 			dependencyMap[soName].append(doName)
 
-	
 	for soName in soArray:
 		array = dependencyMap[soName]
 		ilk = array[0]
@@ -196,10 +204,28 @@ def main():
 		##
 		# Add the rim number generation function here
 		for index, item in enumerate(arrayCopy):
+			# temporary hack for DO_0265
+			if item.find('DO_0265') != -1:
+				if item.find('~') != -1:
+					temp = item.split('~')
+					t = temp[0] + 'M_' + temp[1]
+				else:
+					t = 'M_' + item
+				arrayCopy[index] = t
+				continue
+
+			temp = ''
+			if item.find('~') != -1:
+				temp = item.split('~')
+				rimNumber = get_rim_number(temp[1])
 			rimNumber = get_rim_number(item)
 			if not rimNumber:
 				continue
-			t = 'R' + rimNumber + '_' + item
+
+			if temp:
+				t = temp[0] + 'R' + rimNumber + '_' + temp[1]
+			else:
+				t = 'R' + rimNumber + '_' + item
 			arrayCopy[index] = t
 
 		string = ''
@@ -219,7 +245,6 @@ def main():
 
 		dependencyMap[soName] = [mainIlk, str(f)]
 
-
 	# write data to excel file
 	book = Workbook('ILKEqns.xlsx')
 	sheet = book.add_worksheet('Flattened Interlock Equations')
@@ -229,6 +254,7 @@ def main():
 	sheet.write(0, 2, 'Dependency')
 	# set width
 	sheet.set_column(2, 2, 300)
+	sheet.set_column(0, 0, 10)
 	
 	write_data(sheet, soArray, dependencyMap)
 
