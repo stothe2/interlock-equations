@@ -4,30 +4,12 @@ from pyeda.inter import *
 
 from Tree import *
 
-wb = open_workbook(filename='2.xls', formatting_info=True)
+wb = open_workbook(filename='1.xls', formatting_info=True)
 matrixSheet = wb.sheet_by_name('Interlock Matrix')
 stringsSheet = wb.sheet_by_name('Interlock Strings')
-rimSheet = wb.sheet_by_name('IO Mapping Table')
 interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
-
-def get_rim_number(name, soName):
-	signalColumn = rimSheet.col_values(0)
-	doColumn = rimSheet.col_values(16)
-	rimColumn = rimSheet.col_values(32)
-
-	for index, item in enumerate(signalColumn):
-		if name.find(item) != -1:
-			if rimColumn[index].find('RIM') != -1:
-				temp = rimColumn[index].split()
-				return str(temp[1])
-
-	for index, item in enumerate(doColumn):
-		if name.find(item) != -1:
-			if rimColumn[index].find('RIM') != -1:
-				temp = rimColumn[index].split()
-				return str(temp[1])
 
 def write_data(sheet, soArray, dependencyMap):
 	rownum = 1
@@ -35,9 +17,7 @@ def write_data(sheet, soArray, dependencyMap):
 		data = dependencyMap[item]
 		ilk = data[0]
 		equation = data[1]
-		rimNumber = get_rim_number(item, item)
-		newItem = 'R' + rimNumber + '_' + item
-		sheet.write(rownum, 0, newItem)
+		sheet.write(rownum, 0, item)
 		sheet.write(rownum, 1, ilk)
 		sheet.write(rownum, 2, equation)
 		rownum = rownum + 1
@@ -76,7 +56,7 @@ def get_io_members(name):
 	temp = []
 	# find interlock on worksheet
 	index = helper(name)
-	if index == None:
+	if not index:
 		raise Exception('InterlockDoesNotExistException')
 	# list I/O members of the interlock
 	start = ioMemNumArray[index] + 1
@@ -93,23 +73,10 @@ def get_io_members(name):
 		temp.append(item)
 	return temp
 
-def generate_soArray():
-	soArray = list()
-	searchCol1 = stringsSheet.col_values(11)
-	searchCol2 = stringsSheet.col_values(26) 
-	for s in searchCol1:
-		if s.find('SO_') != -1:
-			soArray.append(s[:6])
-	for s in searchCol2:
-		if s.find('SO_') != -1:
-			soArray.append(s[:6])
-	soArray.sort()
-	return soArray
-
 def main():
 	#wb = open_workbook(filename='1.xls', formatting_info=True)
 	#matrixSheet = wb.sheet_by_name('Interlock Matrix')
-	soArray = generate_soArray()
+	soArray = matrixSheet.col_values(1, 3, 179)
 	doiArray = matrixSheet.row_values(2, 14, 146)
 
 	# number of rows and columns in matrix
@@ -118,7 +85,6 @@ def main():
 
 	colourMap = dict()
 
-	'''
 	# dark blue rgb(0, 51, 102)
 	# light blue rbd(204, 255, 255)
 	for i, so in enumerate(soArray):
@@ -136,12 +102,10 @@ def main():
 
 	# list of rownums for interlock number and where used
 	#stringsSheet = wb.sheet_by_name('Interlock Strings')
+	filterArray = stringsSheet.col_values(0)
 	#interlockNumArray = []
 	#whereUsedNumArray = []
 	#ioMemNumArray = []
-	'''
-	filterArray = stringsSheet.col_values(0)
-
 	for index, item in enumerate(filterArray):
 		if item == "Interlock Number:":
 			interlockNumArray.append(index)
@@ -180,19 +144,16 @@ def main():
 				continue
 			dependencyMap[soName].append(doName)
 
+
 	for soName in soArray:
 		array = dependencyMap[soName]
 		ilk = array[0]
 		mainIlk = ilk
 		array = array[1:]
 
-		if mainIlk == 'ILK_01':
-			dependencyMap[soName] = [mainIlk, 'DI_000']
-			continue
-
 		tree = Tree()
 		p = tree.insert_root(ilk)
-		
+
 		while tree.has_ilk():
 			pointer, ilk = tree.get_ilk()
 			loop(tree, pointer, ilk)
@@ -200,35 +161,6 @@ def main():
 		tree.reverse_children()
 
 		arrayCopy = tree.format_list()
-
-		##
-		# Add the rim number generation function here
-		for index, item in enumerate(arrayCopy):
-			# temporary hack for DO_0265
-			if item.find('DO_0265') != -1:
-				if item.find('~') != -1:
-					temp = item.split('~')
-					t = temp[0] + 'M_' + temp[1]
-				else:
-					t = 'M_' + item
-				arrayCopy[index] = t
-				continue
-
-			temp = ''
-			if item.find('~') != -1:
-				temp = item.split('~')
-				rimNumber = get_rim_number(temp[1], soName)
-			else:
-				rimNumber = get_rim_number(item, soName)
-			if not rimNumber:
-				continue
-
-			if temp:
-				t = '~R' + rimNumber + '_' + temp[1]
-			else:
-				t = 'R' + rimNumber + '_' + item
-			arrayCopy[index] = t
-
 		string = ''
 		for index, item in enumerate(arrayCopy):
 			string = string + ' ' + item
@@ -255,8 +187,7 @@ def main():
 	sheet.write(0, 2, 'Dependency')
 	# set width
 	sheet.set_column(2, 2, 300)
-	sheet.set_column(0, 0, 10)
-	
+
 	write_data(sheet, soArray, dependencyMap)
 
 	book.close()
