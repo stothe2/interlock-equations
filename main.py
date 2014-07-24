@@ -12,7 +12,7 @@ interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
 
-def get_rim_number(name):
+def get_rim_number(name, soName):
 	signalColumn = rimSheet.col_values(0)
 	doColumn = rimSheet.col_values(16)
 	rimColumn = rimSheet.col_values(32)
@@ -24,7 +24,7 @@ def get_rim_number(name):
 				return str(temp[1])
 
 	for index, item in enumerate(doColumn):
-		if name.find(item) != -1:
+		if name.find(item) != -1 and signalColumn[index] == soName:
 			if rimColumn[index].find('RIM') != -1:
 				temp = rimColumn[index].split()
 				return str(temp[1])
@@ -35,7 +35,7 @@ def write_data(sheet, soArray, dependencyMap):
 		data = dependencyMap[item]
 		ilk = data[0]
 		equation = data[1]
-		rimNumber = get_rim_number(item)
+		rimNumber = get_rim_number(item, item)
 		newItem = 'R' + rimNumber + '_' + item
 		sheet.write(rownum, 0, newItem)
 		sheet.write(rownum, 1, ilk)
@@ -217,8 +217,8 @@ def main():
 			temp = ''
 			if item.find('~') != -1:
 				temp = item.split('~')
-				rimNumber = get_rim_number(temp[1])
-			rimNumber = get_rim_number(item)
+				rimNumber = get_rim_number(temp[1], soName)
+			rimNumber = get_rim_number(item, soName)
 			if not rimNumber:
 				continue
 
