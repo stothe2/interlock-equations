@@ -12,6 +12,110 @@ interlockNumArray = []
 whereUsedNumArray = []
 ioMemNumArray = []
 
+controlsWb = open_workbook(filename='Signal List_11.xlsx')
+
+def get_mapped_name(descriptionName, rimNumber):
+	if rimNumber == '1':
+		s = controlsWb.sheet_by_name('RIM1 ^ -001')
+	elif rimNumber == '2':
+		s = controlsWb.sheet_by_name('RIM2 ^ -001')
+	elif rimNumber == '3':
+		s = controlsWb.sheet_by_name('RIM3 ^ -001')
+
+	if not s:
+		raise Exception('%s not a valid RIM#' % rimNumber)
+
+	nameCol = s.col_values(0)
+	hardwareNameCol = s.col_values(1)
+
+	for index, hardwareName in enumerate(hardwareNameCol):
+		if hardwareName.lower() == descriptionName.lower():
+			return nameCol[index]
+	return None
+
+def replace_signal_name_doi(name, rimNumber):
+	if name[0] == 'M':
+		name = name[2:]
+	if name[0] == 'R':
+		name = name[3:]
+
+	descriptionColumn = rimSheet.col_values(4)
+	doColumn = rimSheet.col_values(16)
+
+	for index, signal in enumerate(doColumn):
+		if name.find(signal) != -1 and signal != '':
+			mappedName = get_mapped_name(descriptionColumn[index], rimNumber)
+			if name == 'DI_239':
+				return 'DI100'
+			if name == 'DO_0206':
+				return 'DO36'
+			if name == 'DI_209':
+				return 'DI100'
+			if name == 'DI_211':
+				return 'DI101'
+			if name == 'DI_213':
+				return 'DI102'
+			if name == 'DI_215':
+				return 'DI103'
+			if name == 'DI_217':
+				return 'DI104'
+			if not mappedName:
+				raise Exception('%s does not map to Controls Group names' % name)
+			return mappedName
+
+def replace_signal_name_so(name, rimNumber):
+	if name[0] == 'M':
+		name = name[2:]
+	if name[0] == 'R':
+		name = name[3:]
+
+	descriptionColumn = rimSheet.col_values(4)
+	signalColumn = rimSheet.col_values(0)
+
+	for index, signal in enumerate(signalColumn):
+		if name.find(signal) != -1:
+			mappedName = get_mapped_name(descriptionColumn[index], rimNumber)
+			if name == 'SO_128':
+				return name
+			if name == 'SO_130':
+				return name
+			if name == 'SO_137':
+				return name
+			if name == 'SO_138':
+				return name
+			if name == 'SO_146':
+				return 'DO81'
+			if name == 'SO_152':
+				return name
+			if name == 'SO_153':
+				return name
+			if name == 'SO_159':
+				return name
+			if name == 'SO_160':
+				return name
+			if name == 'SO_161':
+				return name
+			if name == 'SO_162':
+				return name
+			if name == 'SO_163':
+				return name
+			## this is due to capitalization difference!
+			#if name == 'SO_179':
+			#	return 'DO00'
+			if name == 'SO_201':
+				return name
+			if name == 'SO_209':
+				return name
+			## this is due to a space in Spare_HEATER _SSR_17! wtf
+			if name == 'SO_218':
+				return 'DO108'
+			## this is due to AMPDS_vaporizer_inlet_valve)open_cmd! ftw
+			if name == 'SO_268':
+				return 'DO36'
+			if not mappedName:
+				raise Exception('%s does not map to Controls Group names' % name)
+			return mappedName
+
 def get_rim_number(name, soName):
 	signalColumn = rimSheet.col_values(0)
 	doColumn = rimSheet.col_values(16)
@@ -35,8 +139,12 @@ def write_data(sheet, soArray, dependencyMap):
 		data = dependencyMap[item]
 		ilk = data[0]
 		equation = data[1]
+		# obtain RIM# for SO
 		rimNumber = get_rim_number(item, item)
-		newItem = 'R' + rimNumber + '_' + item
+		# Replace SO name with the name we use
+		mappedItem = replace_signal_name_so(item, rimNumber)
+		# Ta-da!
+		newItem = 'R' + rimNumber + '_' + mappedItem
 		sheet.write(rownum, 0, newItem)
 		sheet.write(rownum, 1, ilk)
 		sheet.write(rownum, 2, equation)
@@ -224,9 +332,11 @@ def main():
 				continue
 
 			if temp:
-				t = '~R' + rimNumber + '_' + temp[1]
+				mappedItem = replace_signal_name_doi(temp[1], rimNumber)
+				t = '~R' + rimNumber + '_' + mappedItem
 			else:
-				t = 'R' + rimNumber + '_' + item
+				mappedItem = replace_signal_name_doi(item, rimNumber)
+				t = 'R' + rimNumber + '_' + mappedItem
 			arrayCopy[index] = t
 
 		string = ''
