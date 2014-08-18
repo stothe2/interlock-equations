@@ -5,6 +5,9 @@ class Tree:
 			self.data = data
 			self.parent = None
 			self.children = list()
+			# The colour is used to determine if a node has been
+			# visited before or not. This is necessary, but only helpful
+			# for "ILK" nodes when flattening the equations.
 			# black, True: visited
 			# red, False: not visited
 			self.colour = False
@@ -44,11 +47,14 @@ class Tree:
 			raise Exception('EmptyTreeException')
 		return self._root
 
+	# Not really well-written. Would be more apt/necessary if the
+	# script was written in Java.
 	def _convert(self, p):
 		# check for isinstance
 		if not p:
 			raise Exception('not really a position')
-		# hmm, not really typecasting
+		# Hmm, not really typecasting...
+		# Hey, don't judge!
 		n = p
 		return n
 
@@ -76,15 +82,22 @@ class Tree:
 				return True
 		return False
 
+	# Finds ILK name in the tree which hasn't ever been "visited",
+	# and returns a pointer to that node and the ILK name.
 	def get_ilk(self):
 		array = self._to_list(self._root, [])
 		for item in array:
+			# ILK branch not visited till present?
 			if item.data.find('ILK_') != -1 and not item.colour:
+				# Set current ILK branch to visited once.
 				item.colour = True
+				# Only 'ILK'?
 				if len(item.data) <= 7:
 					ilk = item.data
+				# 'NOT_ILK'?
 				elif item.data.find('NOT_ILK_') != -1:
 					ilk = item.data[12:]
+				# gotta check...
 				else:
 					ilk = item.data[8:]
 				return item, ilk
@@ -146,15 +159,3 @@ class Tree:
 				for child in n.children:
 					n = child
 					self._reverse_children(n)
-
-'''
-	def __iter__(self):
-		return self
-
-	def __next__(self):
-		root = self._root
-		if not root:
-			StopIteration
-		else:
-			# ...
-'''
