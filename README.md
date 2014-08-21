@@ -18,3 +18,8 @@ Before you run the script on your computer, go through the checklist below and e
 3. **Xlsxwriter**
   
   To write data to Excel 2007+ files, the script uses this external library. To install, click [here](http://xlsxwriter.readthedocs.org/getting_started.html#installing-xlsxwriter).
+
+
+## Runnning the Script
+
+From the command-line, go to the directory where your files are saved, and type `python main.py`. (Caution, if you have both Python 2 and 3 installed on your desktop, you'd need to specify the version as well).
